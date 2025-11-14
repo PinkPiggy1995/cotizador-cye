@@ -18,26 +18,44 @@ localidad = st.text_input("Localidad del cliente")
 
 # --- Datos del proyecto ---
 precio_m2 = st.number_input("Precio base por m² ($)", min_value=0.0, step=100.0)
-superficie = st.number_input("Superficie (m²)", min_value=0.0, step=1.0)
 distancia_km = st.number_input("Distancia al cliente (km)", min_value=0.0, step=10.0)
 
 # --- Ubicación y adicionales ---
 orientacion = st.selectbox("Ubicación del proyecto", ["Norte", "Sur"])
 adicional = st.number_input("Adicional ($, opcional)", min_value=0.0, step=100.0, value=0.0)
 
+# --- Superficie al final ---
+superficie = st.number_input("Superficie (m²)", min_value=0.0, step=1.0)
+
 # --- Cálculo ---
+
+import math
+
 if st.button("Calcular presupuesto"):
-    precio_ajustado = precio_m2
+
+    # 1. Costo base por m²
+    costo_base = precio_m2
+
+    # 2. Costo de distancia según orientación
+    if distancia_km <= 300:
+        tramos = 0
+    else:
+        tramos = math.ceil((distancia_km - 300) / 300)
 
     if orientacion == "Norte":
-        precio_ajustado += 10000
+        costo_distancia = tramos * 10000
     elif orientacion == "Sur":
-        tramos = distancia_km / 300
-        precio_ajustado += 20000 * tramos
+        costo_distancia = tramos * 20000
+    else:
+        costo_distancia = 0
 
-    total = superficie * precio_ajustado + adicional
+    # 3. Adicionales
+    costo_adicionales = adicional
 
-    st.success(f"**Presupuesto total estimado:** ${total:,.2f}")
+    # 4. Total final
+    total = (costo_base + costo_distancia + costo_adicionales) * superficie
+
+    st.success(f"El presupuesto total es: ${total:,.0f}")
 
     # Crear DataFrame para exportar
     df = pd.DataFrame({
@@ -46,11 +64,11 @@ if st.button("Calcular presupuesto"):
         "Provincia": [provincia],
         "Localidad": [localidad],
         "Precio base m² ($)": [precio_m2],
-        "Superficie (m²)": [superficie],
         "Distancia (km)": [distancia_km],
         "Ubicación": [orientacion],
         "Adicional ($)": [adicional],
-        "Precio ajustado m² ($)": [precio_ajustado],
+        "Precio ajustado m² ($)": [costo_base + costo_distancia + costo_adicionales],
+        "Superficie (m²)": [superficie],
         "Total ($)": [total]
     })
 
